@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<ul>
+    {% for e in events %}
+    <li>
+        <h2>{{ e.name }}</h2>
+        <p>{{ e.place }}</p>
+        <p>{{ e.date }}</p>
+        <p><a href="{% url 'event' e.id%}">Читать подробнее</a></p>
+        <hr>
+    </li>
+    {% endfor %}
+</ul>
+{% endblock %}

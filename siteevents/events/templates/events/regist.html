@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<hr>
+<form method="post" action="{% url 'home' %}">
+    {% csrf_token %}
+    <p>Login</p>
+    <input name="login">
+
+    <p>Password</p>
+    <input name="password">
+    <input type="submit" value="Send">
+</form>
+{% endblock %}
