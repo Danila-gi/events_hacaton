@@ -1,8 +1,9 @@
 from click import password_option
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import HttpResponse, HttpResponseNotFound
 from django.template.loader import render_to_string
 from events.models import User
+from django.core.exceptions import ObjectDoesNotExist
 
 events = [
     {'id': 1, 'name': 'Преступление и наказание', 'place': 'Большой театр', 'date': '21-07-2025'},
@@ -10,16 +11,33 @@ events = [
 ]
 
 def index(request):
-    if (request.POST):
-        login = request.POST['login']
-        pswd = request.POST['password']
+    data = {
+        'title': 'Главная страница',
+        'events': events,
+        'user': request.session.get('user'),
+    }
+
+    if (request.POST.get('action') == 'Regist'):
+        login = request.POST.get('login')
+        pswd = request.POST.get('password')
         user = User(login=login, password=pswd)
         user.save()
 
-    data = {
-        'title': 'Главная страница',
-        'events': events
-    }
+        data['user'] = user.login
+        request.session['user'] = user.login
+
+    elif (request.POST.get('action') == 'Login'):
+
+        try:
+            user = User.objects.get(login=request.POST.get('login'), password=request.POST.get('password'))
+
+            data['user'] = user.login
+            request.session['user'] = user.login
+
+        except ObjectDoesNotExist:
+
+            return redirect('login')
+
     return render(request, 'events/index.html', data)
 
 def registration(request):

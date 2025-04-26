@@ -1,5 +1,9 @@
 {% extends 'base.html' %}
 {% block content %}
+
+{% if user is not None %}
+<h3>Hello {{ user }}</h3>
+{% endif %}
 <ul>
     {% for e in events %}
     <li>
