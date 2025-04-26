@@ -4,52 +4,60 @@ from django.http import HttpResponse, HttpResponseNotFound
 from django.template.loader import render_to_string
 from events.models import User
 from django.core.exceptions import ObjectDoesNotExist
+import requests
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
 
-events = [
-    {'id': 1, 'name': 'Преступление и наказание', 'place': 'Большой театр', 'date': '21-07-2025'},
-    {'id': 2, 'name': 'Как закалялась сталь', 'place': 'Мариинский театр', 'date': '13-08-2025'}
-]
+class LoginAPIView(APIView):
+    def post(self, request):
+        try:
+            user_login = User.objects.get(login=request.data['username'])
+            try:
+                user = User.objects.get(login=request.data['username'], password=request.data['password'])
+                return Response({'id': user.id, 'user': user.login, 'flag': True})
+            except ObjectDoesNotExist:
+                return Response({'id': user_login.id, 'user': user_login.login, 'flag': False})
+        except ObjectDoesNotExist:
+            return Response({'id': '', 'user': '', 'flag': False})
 
-def index(request):
-    data = {
-        'title': 'Главная страница',
-        'events': events,
-        'user': request.session.get('user'),
-    }
+class RegistrationAPIView(APIView):
+    def post(self, request):
+        try:
+            User.objects.get(login=request.data['username'])
+            return Response({'id': None, 'user': None})
+        except:
+            try:
+                login = request.data['username']
+                pswd = request.data['password']
+                user = User(login=login, password=pswd)
+                user.save()
 
-    if (request.POST.get('action') == 'Regist'):
-        login = request.POST.get('login')
-        pswd = request.POST.get('password')
-        user = User(login=login, password=pswd)
+                user = User.objects.get(login=request.data['username'])
+                return Response({'id': user.id, 'user': user.login})
+            except:
+                return Response({'id': None, 'user': None})
+
+class TagsGetAPIView(APIView):
+    def post(self, request):
+        tags = request.data['tags']
+        user = User.objects.get(id=request.data['id'])
+        user.tags = '/'.join(tags)
         user.save()
 
-        data['user'] = user.login
-        request.session['user'] = user.login
+class TagsSendAPIView(APIView):
+    def post(self, request):
+        user = User.objects.get(id=request.data['id'])
+        return Response({'tags': user.tags.split('/')})
 
-    elif (request.POST.get('action') == 'Login'):
+class FavouritesGetAPIView(APIView):
+    def post(self, request):
+        event = request.data['event']
+        user = User.objects.get(id=request.data['id'])
+        user.favourites = user.favourites + '/' + str(event)
+        user.save()
 
-        try:
-            user = User.objects.get(login=request.POST.get('login'), password=request.POST.get('password'))
-
-            data['user'] = user.login
-            request.session['user'] = user.login
-
-        except ObjectDoesNotExist:
-
-            return redirect('login')
-
-    return render(request, 'events/index.html', data)
-
-def registration(request):
-    data = {'title': 'Регистрация'}
-    return render(request, 'events/regist.html', data)
-
-def login(request):
-    data = {'title': 'Вход'}
-    return render(request, 'events/login.html', data)
-
-def event(request, event_id):
-    return HttpResponse(f"Event with id = {event_id}")
-
-def page_not_found(request, exception):
-    return HttpResponseNotFound("<h1>Not found this URL!!!</h1>")
+class FavouritesSendAPIView(APIView):
+    def post(self, request):
+        user = User.objects.get(id=request.data['id'])
+        return Response({'events': user.favourites.split('/')})
